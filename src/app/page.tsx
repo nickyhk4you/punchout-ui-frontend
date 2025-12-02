@@ -5,6 +5,7 @@ import { sessionAPI, orderAPI } from '@/lib/api';
 import { PunchOutSession, Order } from '@/types';
 import Link from 'next/link';
 
+
 export default function HomePage() {
   const [stats, setStats] = useState({
     totalSessions: 0,
