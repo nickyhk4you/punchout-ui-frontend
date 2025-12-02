@@ -29,7 +29,7 @@ jobs:
       - name: Get changed files
         id: changed-files
         run: |
-          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.(ts|tsx|js|jsx)$' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.(ts|tsx|js|jsx)$' | grep -v '^\.next/' | grep -v 'node_modules/' | tr '\n' ' ')" >> $GITHUB_OUTPUT
       
       - name: Run Amp Code Review
         if: steps.changed-files.outputs.files != ''
