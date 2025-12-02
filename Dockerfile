@@ -29,8 +29,8 @@ COPY --from=builder --chown=app:app /app/node_modules ./node_modules
 COPY --from=builder --chown=app:app /app/package.json ./package.json
 COPY --from=builder --chown=app:app /app/next.config.js ./next.config.js
 
-# Copy public folder if it exists (in src/public for this project)
-COPY --from=builder --chown=app:app /app/src/public ./public
+# Create public directory (may be empty)
+RUN mkdir -p ./public
 
 # Switch to non-root user
 USER app

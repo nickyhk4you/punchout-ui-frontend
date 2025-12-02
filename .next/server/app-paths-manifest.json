@@ -1,4 +1,4 @@
 {
-  "/developer/punchout/page": "app/developer/punchout/page.js",
-  "/page": "app/page.js"
+  "/page": "app/page.js",
+  "/developer/punchout/page": "app/developer/punchout/page.js"
 }
