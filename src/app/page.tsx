@@ -7,6 +7,7 @@ import { formatDate, formatCurrency, getStatusColor } from '@/lib/utils';
 import { StatCard, QuickActionCard, FeatureCard } from '@/components/ui';
 import Link from 'next/link';
 
+
 interface DashboardStats {
   totalSessions: number;
   devSessions: number;
