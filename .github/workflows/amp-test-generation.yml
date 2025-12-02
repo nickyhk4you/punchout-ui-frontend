@@ -1,0 +1,115 @@
+name: Amp AI Test Generation
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_file:
+        description: 'File path to generate tests for (e.g., src/components/Button.tsx)'
+        required: true
+        type: string
+
+jobs:
+  generate-tests:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm ci
+      
+      - name: Install Amp SDK
+        run: npm install @sourcegraph/amp-sdk
+      
+      - name: Generate tests with Amp
+        env:
+          AMP_API_KEY: ${{ secrets.AMP_API_KEY }}
+          TARGET_FILE: ${{ github.event.inputs.target_file }}
+        run: |
+          cat << 'EOF' > generate-tests.mjs
+          import { execute } from '@sourcegraph/amp-sdk';
+          import { readFileSync, writeFileSync, existsSync } from 'fs';
+          import { dirname, basename, join } from 'path';
+          
+          const targetFile = process.env.TARGET_FILE;
+          
+          if (!targetFile || !existsSync(targetFile)) {
+            console.error(`File not found: ${targetFile}`);
+            process.exit(1);
+          }
+          
+          const fileContent = readFileSync(targetFile, 'utf8');
+          const dir = dirname(targetFile);
+          const name = basename(targetFile, '.tsx').replace('.ts', '');
+          const testFile = join(dir, `${name}.test.tsx`);
+          
+          const prompt = `
+          Generate comprehensive unit tests for this React/Next.js component or module.
+          
+          File: ${targetFile}
+          Content:
+          \`\`\`typescript
+          ${fileContent}
+          \`\`\`
+          
+          Requirements:
+          1. Use Jest and React Testing Library (if it's a component)
+          2. Cover all main functionality
+          3. Include edge cases
+          4. Follow testing best practices
+          5. Use TypeScript
+          
+          Output ONLY the test file content, no explanations.
+          `;
+          
+          let result = '';
+          for await (const message of execute({
+            prompt,
+            options: {
+              dangerouslyAllowAll: true,
+              cwd: process.cwd()
+            }
+          })) {
+            if (message.type === 'result' && !message.is_error) {
+              result = message.result;
+            }
+          }
+          
+          // Extract code from markdown if present
+          const codeMatch = result.match(/```(?:typescript|tsx|javascript|jsx)?\n([\s\S]*?)```/);
+          const testContent = codeMatch ? codeMatch[1] : result;
+          
+          writeFileSync(testFile, testContent);
+          console.log(`Generated tests at: ${testFile}`);
+          EOF
+          
+          node generate-tests.mjs
+      
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "test: add AI-generated tests for ${{ github.event.inputs.target_file }}"
+          title: "🧪 AI-Generated Tests for ${{ github.event.inputs.target_file }}"
+          body: |
+            ## Amp AI Test Generation
+            
+            This PR contains automatically generated tests for `${{ github.event.inputs.target_file }}`.
+            
+            **Please review the generated tests carefully before merging.**
+            
+            - [ ] Tests are valid and make sense
+            - [ ] Edge cases are covered
+            - [ ] No false positives
+          branch: amp/tests-${{ github.run_id }}
+          delete-branch: true

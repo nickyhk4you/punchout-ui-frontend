@@ -1,0 +1,112 @@
+name: Amp AI Issue Triage
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Install Amp SDK
+        run: npm install @sourcegraph/amp-sdk
+      
+      - name: Analyze and triage issue
+        env:
+          AMP_API_KEY: ${{ secrets.AMP_API_KEY }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          cat << 'EOF' > triage.mjs
+          import { execute } from '@sourcegraph/amp-sdk';
+          
+          const issueTitle = process.env.ISSUE_TITLE || '';
+          const issueBody = process.env.ISSUE_BODY || '';
+          
+          const prompt = `
+          Analyze this GitHub issue and provide:
+          1. Suggested labels (from: bug, enhancement, documentation, question, good-first-issue)
+          2. Priority level (low, medium, high, critical)
+          3. Brief analysis of what the issue is about
+          4. Potential areas of the codebase that might be affected
+          
+          Issue Title: ${issueTitle}
+          Issue Body: ${issueBody}
+          
+          This is a Next.js frontend application for a cXML Punchout Service.
+          
+          Format as JSON:
+          {
+            "labels": ["label1", "label2"],
+            "priority": "medium",
+            "summary": "brief summary",
+            "affected_areas": ["area1", "area2"],
+            "comment": "helpful comment for the issue author"
+          }
+          `;
+          
+          let result = '';
+          for await (const message of execute({
+            prompt,
+            options: {
+              dangerouslyAllowAll: true,
+              cwd: process.cwd()
+            }
+          })) {
+            if (message.type === 'result' && !message.is_error) {
+              result = message.result;
+            }
+          }
+          
+          console.log(result);
+          EOF
+          
+          node triage.mjs > triage-output.txt || true
+      
+      - name: Apply labels and comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let output = '';
+            try {
+              output = fs.readFileSync('triage-output.txt', 'utf8');
+              // Try to extract JSON from the output
+              const jsonMatch = output.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                const triage = JSON.parse(jsonMatch[0]);
+                
+                // Add labels
+                if (triage.labels && triage.labels.length > 0) {
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    labels: triage.labels
+                  });
+                }
+                
+                // Add comment
+                if (triage.comment) {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: context.issue.number,
+                    body: `## 🤖 Amp AI Analysis\n\n**Priority:** ${triage.priority || 'Not determined'}\n\n**Summary:** ${triage.summary || 'N/A'}\n\n**Potentially affected areas:** ${(triage.affected_areas || []).join(', ') || 'Not determined'}\n\n---\n\n${triage.comment}`
+                  });
+                }
+              }
+            } catch (e) {
+              console.log('Could not parse triage output:', e.message);
+            }

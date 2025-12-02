@@ -1,0 +1,99 @@
+name: Amp AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  amp-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install Amp SDK
+        run: npm install @sourcegraph/amp-sdk
+      
+      - name: Get changed files
+        id: changed-files
+        run: |
+          echo "files=$(git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.sha }} | grep -E '\.(ts|tsx|js|jsx)$' | tr '\n' ' ')" >> $GITHUB_OUTPUT
+      
+      - name: Run Amp Code Review
+        if: steps.changed-files.outputs.files != ''
+        env:
+          AMP_API_KEY: ${{ secrets.AMP_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat << 'EOF' > amp-review.mjs
+          import { execute } from '@sourcegraph/amp-sdk';
+          
+          const changedFiles = process.env.CHANGED_FILES?.trim().split(' ').filter(Boolean) || [];
+          
+          if (changedFiles.length === 0) {
+            console.log('No TypeScript/JavaScript files changed.');
+            process.exit(0);
+          }
+          
+          const prompt = `
+          Review the following changed files for a pull request. Focus on:
+          1. Code quality and best practices
+          2. Potential bugs or issues
+          3. Security concerns
+          4. Performance considerations
+          5. TypeScript type safety
+          
+          Changed files: ${changedFiles.join(', ')}
+          
+          Provide a concise review summary with actionable feedback.
+          Format the output as markdown suitable for a PR comment.
+          `;
+          
+          let result = '';
+          for await (const message of execute({
+            prompt,
+            options: {
+              dangerouslyAllowAll: true,
+              cwd: process.cwd()
+            }
+          })) {
+            if (message.type === 'result' && !message.is_error) {
+              result = message.result;
+            }
+          }
+          
+          console.log(result);
+          EOF
+          
+          CHANGED_FILES="${{ steps.changed-files.outputs.files }}" node amp-review.mjs > review-output.md || true
+      
+      - name: Post review comment
+        if: steps.changed-files.outputs.files != ''
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const reviewOutput = fs.existsSync('review-output.md') 
+              ? fs.readFileSync('review-output.md', 'utf8')
+              : 'No review output generated.';
+            
+            if (reviewOutput.trim() && reviewOutput !== 'No review output generated.') {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: `## 🤖 Amp AI Code Review\n\n${reviewOutput}`
+              });
+            }
