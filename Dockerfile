@@ -27,7 +27,10 @@ WORKDIR /app
 COPY --from=builder --chown=app:app /app/.next ./.next
 COPY --from=builder --chown=app:app /app/node_modules ./node_modules
 COPY --from=builder --chown=app:app /app/package.json ./package.json
-COPY --from=builder --chown=app:app /app/public ./public
+COPY --from=builder --chown=app:app /app/next.config.js ./next.config.js
+
+# Copy public folder if it exists (in src/public for this project)
+COPY --from=builder --chown=app:app /app/src/public ./public
 
 # Switch to non-root user
 USER app
