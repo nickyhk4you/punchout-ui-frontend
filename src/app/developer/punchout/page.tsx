@@ -30,7 +30,10 @@ export default function DeveloperPunchOutPage() {
     const loadCustomers = async () => {
       setLoading(true);
       try {
+        console.log('Fetching deployed onboardings...');
         const allOnboardings = await onboardingAPI.getDeployedOnboardings();
+        console.log('All onboardings:', allOnboardings?.length, 'items');
+        console.log('Selected environment:', selectedEnvironment);
         
         // Filter by selected environment and get unique customers
         const customersForEnv = allOnboardings
@@ -46,6 +49,7 @@ export default function DeveloperPunchOutPage() {
             targetJson: onboarding.targetJson
           }));
         
+        console.log('Filtered customers for', selectedEnvironment, ':', customersForEnv.length);
         setCustomers(customersForEnv);
       } catch (error) {
         console.error('Error loading customers:', error);
