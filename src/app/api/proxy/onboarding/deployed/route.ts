@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 
+// Force dynamic rendering - don't try to fetch at build time
+export const dynamic = 'force-dynamic';
+
 const GATEWAY_BASE_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090/api';
 
 export async function GET() {
