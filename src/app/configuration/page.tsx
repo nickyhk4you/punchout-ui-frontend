@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import Breadcrumb from '@/components/Breadcrumb';
 
+const GATEWAY_BASE_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090';
+
 interface NetworkRequest {
   id: string;
   timestamp: string;
@@ -136,8 +138,8 @@ export default function ConfigurationPage() {
   const fetchEnvironmentConfigs = async () => {
     try {
       const [configsRes, currentRes] = await Promise.all([
-        fetch('http://localhost:9090/api/environment-config'),
-        fetch('http://localhost:9090/api/environment-config/current')
+        fetch(`${GATEWAY_BASE_URL}/api/environment-config`),
+        fetch(`${GATEWAY_BASE_URL}/api/environment-config/current`)
       ]);
       
       if (configsRes.ok) setEnvConfigs(await configsRes.json());
@@ -151,8 +153,8 @@ export default function ConfigurationPage() {
     try {
       const method = config.id ? 'PUT' : 'POST';
       const url = config.id 
-        ? `http://localhost:9090/api/environment-config/${config.environment}`
-        : 'http://localhost:9090/api/environment-config';
+        ? `${GATEWAY_BASE_URL}/api/environment-config/${config.environment}`
+        : `${GATEWAY_BASE_URL}/api/environment-config`;
       
       const response = await fetch(url, {
         method,
@@ -174,7 +176,7 @@ export default function ConfigurationPage() {
     if (!confirm(`Delete environment config for "${environment}"?`)) return;
     
     try {
-      const response = await fetch(`http://localhost:9090/api/environment-config/${environment}`, {
+      const response = await fetch(`${GATEWAY_BASE_URL}/api/environment-config/${environment}`, {
         method: 'DELETE'
       });
       
@@ -220,10 +222,10 @@ export default function ConfigurationPage() {
   const fetchSecurityData = async () => {
     try {
       const [keysRes, statsRes, logsRes, jwtRes] = await Promise.all([
-        fetch('http://localhost:9090/api/security/api-keys'),
-        fetch('http://localhost:9090/api/security/statistics'),
-        fetch('http://localhost:9090/api/security/audit-logs?limit=50'),
-        fetch('http://localhost:9090/api/security/jwt/config')
+        fetch(`${GATEWAY_BASE_URL}/api/security/api-keys`),
+        fetch(`${GATEWAY_BASE_URL}/api/security/statistics`),
+        fetch(`${GATEWAY_BASE_URL}/api/security/audit-logs?limit=50`),
+        fetch(`${GATEWAY_BASE_URL}/api/security/jwt/config`)
       ]);
       
       if (keysRes.ok) setApiKeys(await keysRes.json());
@@ -237,7 +239,7 @@ export default function ConfigurationPage() {
 
   const generateApiKey = async () => {
     try {
-      const response = await fetch('http://localhost:9090/api/security/api-keys', {
+      const response = await fetch(`${GATEWAY_BASE_URL}/api/security/api-keys`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newApiKey)
