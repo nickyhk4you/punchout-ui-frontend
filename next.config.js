@@ -11,7 +11,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_ENV: process.env.NEXT_PUBLIC_ENV || 'local',
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api',
-    NEXT_PUBLIC_GATEWAY_URL: process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090',
+    NEXT_PUBLIC_GATEWAY_URL: process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090/api',
     NEXT_PUBLIC_APP_NAME: process.env.NEXT_PUBLIC_APP_NAME || 'PunchOut Testing Platform - Local',
   },
   

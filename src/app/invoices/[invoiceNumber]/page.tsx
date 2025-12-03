@@ -8,6 +8,8 @@ import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 import { formatCurrency, formatDate, formatDateTime } from '@/lib/utils/formatters';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
 export default function InvoiceDetailPage() {
   const params = useParams();
   const invoiceNumber = params.invoiceNumber as string;
@@ -54,7 +56,7 @@ export default function InvoiceDetailPage() {
 
   const handleDownloadPDF = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/v1/invoices/${invoiceNumber}/pdf`);
+      const response = await fetch(`${API_BASE_URL}/v1/invoices/${invoiceNumber}/pdf`);
       if (!response.ok) {
         throw new Error('Failed to download PDF');
       }

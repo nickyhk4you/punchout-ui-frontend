@@ -7,6 +7,9 @@ import { CatalogRoute, EnvironmentConfig } from '@/types';
 import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 
+const GATEWAY_BASE_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
 export default function NewTestPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -99,7 +102,7 @@ export default function NewTestPage() {
     
     try {
       // Send cXML to Gateway
-      const gatewayUrl = 'http://localhost:9090/punchout/setup';
+      const gatewayUrl = `${GATEWAY_BASE_URL}/punchout/setup`;
       
       const response = await fetch(gatewayUrl, {
         method: 'POST',
@@ -122,7 +125,7 @@ export default function NewTestPage() {
       let networkRequests = [];
       if (sessionKey) {
         try {
-          const requestsResponse = await fetch(`http://localhost:8080/api/v1/sessions/${sessionKey}/network-requests`);
+          const requestsResponse = await fetch(`${API_BASE_URL}/v1/sessions/${sessionKey}/network-requests`);
           networkRequests = await requestsResponse.json();
         } catch (err) {
           console.error('Failed to fetch network requests:', err);

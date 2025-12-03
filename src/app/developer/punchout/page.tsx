@@ -6,6 +6,9 @@ import { CxmlTemplate } from '@/types';
 import Link from 'next/link';
 import Breadcrumb from '@/components/Breadcrumb';
 
+const GATEWAY_BASE_URL = process.env.NEXT_PUBLIC_GATEWAY_URL || 'http://localhost:9090';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
 export default function DeveloperPunchOutPage() {
   const [selectedEnvironment, setSelectedEnvironment] = useState<string>('dev');
   const [customers, setCustomers] = useState<any[]>([]);
@@ -30,7 +33,10 @@ export default function DeveloperPunchOutPage() {
     const loadCustomers = async () => {
       setLoading(true);
       try {
+        console.log('Fetching deployed onboardings...');
         const allOnboardings = await onboardingAPI.getDeployedOnboardings();
+        console.log('All onboardings:', allOnboardings?.length, 'items');
+        console.log('Selected environment:', selectedEnvironment);
         
         // Filter by selected environment and get unique customers
         const customersForEnv = allOnboardings
@@ -46,6 +52,7 @@ export default function DeveloperPunchOutPage() {
             targetJson: onboarding.targetJson
           }));
         
+        console.log('Filtered customers for', selectedEnvironment, ':', customersForEnv.length);
         setCustomers(customersForEnv);
       } catch (error) {
         console.error('Error loading customers:', error);
@@ -144,7 +151,7 @@ export default function DeveloperPunchOutPage() {
     });
     
     try {
-      const gatewayUrl = 'http://localhost:9090/punchout/setup';
+      const gatewayUrl = `${GATEWAY_BASE_URL}/punchout/setup`;
       const payload = useCustomPayload ? cxmlPayload : await generateCxmlPayload(customer, selectedEnvironment);
       
       const response = await fetch(gatewayUrl, {
@@ -176,7 +183,7 @@ export default function DeveloperPunchOutPage() {
       if (sessionKey) {
         for (let attempt = 0; attempt < 10; attempt++) {
           try {
-            const requestsResponse = await fetch(`http://localhost:8080/api/v1/sessions/${sessionKey}/network-requests`);
+            const requestsResponse = await fetch(`${API_BASE_URL}/v1/sessions/${sessionKey}/network-requests`);
             networkRequests = await requestsResponse.json();
             
             // Check for auth success
@@ -252,7 +259,7 @@ export default function DeveloperPunchOutPage() {
         // Fallback: try to get from session catalog field
         if (!extractedCatalogUrl) {
           try {
-            const sessionResponse = await fetch(`http://localhost:8080/api/v1/sessions/${sessionKey}`);
+            const sessionResponse = await fetch(`${API_BASE_URL}/v1/sessions/${sessionKey}`);
             const sessionData = await sessionResponse.json();
             extractedCatalogUrl = sessionData.catalog;
             console.log('Extracted catalog URL from session:', extractedCatalogUrl);
