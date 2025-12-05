@@ -151,7 +151,8 @@ export default function DeveloperPunchOutPage() {
     });
     
     try {
-      const gatewayUrl = `${GATEWAY_BASE_URL}/punchout/setup`;
+      const punchoutBaseUrl = GATEWAY_BASE_URL.replace(/\/api\/?$/, '');
+      const gatewayUrl = `${punchoutBaseUrl}/punchout/setup`;
       const payload = useCustomPayload ? cxmlPayload : await generateCxmlPayload(customer, selectedEnvironment);
       
       const response = await fetch(gatewayUrl, {
