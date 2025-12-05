@@ -102,7 +102,8 @@ export default function NewTestPage() {
     
     try {
       // Send cXML to Gateway
-      const gatewayUrl = `${GATEWAY_BASE_URL}/punchout/setup`;
+      const punchoutBaseUrl = GATEWAY_BASE_URL.replace(/\/api\/?$/, '');
+      const gatewayUrl = `${punchoutBaseUrl}/punchout/setup`;
       
       const response = await fetch(gatewayUrl, {
         method: 'POST',
